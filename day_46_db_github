@@ -1,0 +1,205 @@
+import mysql.connector
+import requests
+
+# DATABASE CONNECTION
+
+a = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="1234567890$",
+    database="sql_project"
+)
+
+cursor = a.cursor()
+
+print("Database Connected")
+
+
+# API FETCH
+
+def api_data():
+
+    url = "http://demo4728352.mockable.io/Database_Sql_Filehandling_Abjith"
+
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        return response.json()
+
+    else:
+        return []
+
+
+# INSERT DATA
+
+def insert_data():
+
+    products = api_data()
+
+    search = input("Enter Item Name: ").lower()
+
+    order_id = int(input("Enter Order ID: "))
+
+    for i in products:
+
+        if i['title'].lower() == search:
+
+            item_name = i['title']
+
+            price = float(i['price'])
+
+            gst_10 = price * 0.10
+
+            total = price + gst_10
+
+            sql = """
+            INSERT INTO supermarket_bill
+            (order_id,item_name,price,gst_10,total)
+            VALUES(%s,%s,%s,%s,%s)
+            """
+
+            values = (
+                order_id,
+                item_name,
+                price,
+                gst_10,
+                total
+            )
+
+            cursor.execute(sql, values)
+
+            a.commit()
+
+            print("Data Inserted Successfully")
+
+            generate_bill(
+                order_id,
+                item_name,
+                price,
+                gst_10,
+                total
+            )
+
+            return
+
+    print("Item Not Found")
+
+
+# BILL GENERATE
+
+def generate_bill(order_id,item_name,price,gst_10,total):
+
+    with open("bill.txt","a") as f:
+
+        f.write("\n")
+        f.write("===== BILL =====\n")
+        f.write(f"Order ID : {order_id}\n")
+        f.write(f"Item Name : {item_name}\n")
+        f.write(f"Price : {price}\n")
+        f.write(f"GST : {gst_10}\n")
+        f.write(f"Total : {total}\n")
+        f.write("====================\n")
+
+    print("Bill Updated")
+
+
+# READ DATA
+
+def read_data():
+
+    cursor.execute("SELECT * FROM supermarket_bill")
+
+    result = cursor.fetchall()
+
+    for i in result:
+        print(i)
+
+
+# UPDATE
+
+def update_data():
+
+    order_id = int(input("Enter Order ID: "))
+
+    item_name = input("Enter New Item Name: ")
+
+    price = float(input("Enter New Price: "))
+
+    gst_10 = price * 0.10
+
+    total = price + gst_10
+
+    sql = """
+    UPDATE supermarket_bill
+    SET item_name=%s,
+    price=%s,
+    gst_10=%s,
+    total=%s
+    WHERE order_id=%s
+    """
+
+    values = (
+        item_name,
+        price,
+        gst_10,
+        total,
+        order_id
+    )
+
+    cursor.execute(sql, values)
+
+    a.commit()
+
+    print("Data Updated")
+
+
+# DELETE
+
+def delete_data():
+
+    order_id = int(input("Enter Order ID: "))
+
+    sql = "DELETE FROM supermarket_bill WHERE order_id=%s"
+
+    values = (order_id,)
+
+    cursor.execute(sql, values)
+
+    a.commit()
+
+    print("Data Deleted")
+
+
+# MENU
+
+while True:
+    print("\n--- MENU ---\n")
+    print("1.Insert")
+    print("2.View")
+    print("3.Update")
+    print("4.Delete")
+    print("5.Exit")
+
+    user = int(input("Enter Choice: "))
+
+    if user == 1:
+        insert_data()
+
+    elif user == 2:
+        read_data()
+
+    elif user == 3:
+        update_data()
+
+    elif user == 4:
+        delete_data()
+
+    elif user == 5:
+        break
+
+    else:
+        print("Invalid Choice")
+
+
+cursor.close()
+a.close()
